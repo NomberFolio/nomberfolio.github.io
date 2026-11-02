@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>All videos — NomberFax</title>
+<meta name="description" content="Every video by NomberFax on X: search, filter by year and topic, sort by views.">
+<meta property="og:title" content="All videos — NomberFax">
+<meta property="og:description" content="Every video by NomberFax on X: search, filter by year and topic, sort by views.">
+<meta property="og:image" content="assets/img/hero.jpg">
+<meta name="theme-color" content="#07070d">
+<meta name="referrer" content="no-referrer">
+<link rel="icon" href="assets/img/x_avatar.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css?v=13">
+</head>
+<body>
+<div class="bg-grid" aria-hidden="true"></div>
+<header class="nav">
+ <a class="logo" href="index.html">Nomber<span>Fax</span></a>
+ <nav><a href="index.html">Home</a><a href="index.html#experience">Experience</a><a href="index.html#lounge">INJ Lounge</a><a href="videos.html" class=on>Videos</a><a href="design.html">Design</a><a href="art3d.html">Art & 3D</a><a href="index.html#contacts">Contacts</a><a href="thanks.html">Kind words</a></nav>
+ <button class="burger" aria-label="Menu"><span></span><span></span><span></span></button>
+</header>
+<main>
+<div class="hero-wrap"><div class="aurora" aria-hidden="true" style="height:520px;opacity:.35"><i></i><i></i><i></i></div>
+<section class="wrap page-head">
+ <a class="back" href="index.html">← Home</a>
+ <div class="sec-head rv"><span class="kicker">Video archive</span><h1 style="font-size:clamp(2rem,4.5vw,3.4rem);margin:6px 0 10px">All <span class="grad"><span data-stat="videoslist" data-count="0">0</span> videos</span></h1>
+ <p class="muted">Every video I've published on X since Feb 2024. Click any card to play it right here. Below the results, the same videos are laid out month by month.</p></div>
+</section></div>
+
+<section class="wrap" style="padding-bottom:20px">
+ <div class="v-toolbar"><input id="vSearch" type="search" placeholder="Search videos, e.g. ETF, Helix, staking…" aria-label="Search videos">
+  <select id="vSort" class="sel" aria-label="Sort"><option value="new">Newest first</option><option value="old">Oldest first</option><option value="views">Most X views</option><option value="likes">Most likes</option></select></div>
+ <div class="v-toolbar chips" id="vYears"></div>
+ <div class="v-toolbar chips" id="vTopics"></div>
+ <p class="muted small v-count" id="vCount"></p>
+ <div class="v-grid" id="vGrid"></div>
+ <div class="center"><button class="btn" id="vMore">Load more</button></div>
+ <div class="vm-wrap" id="vMonths">
+  <div class="sec-head"><span class="kicker">Month by month</span><h2>Videos by month</h2><p class="muted" id="vmNote">Every video from the results above, placed by the month it was published.</p></div>
+  <div class="vm-jump" id="vmJump"></div>
+  <div id="vmList"></div>
+ </div>
+</section>
+</main>
+<footer class="wrap foot"><span>© <span id="year">2026</span> NomberFax</span><button class="mail-copy" data-copy="NomberContact@proton.me" title="Click to copy">✉ NomberContact@proton.me</button><a class="foot-site" href="https://nomberprojects.github.io/" target="_blank" rel="noopener"><b>NomberProjects.github.io ↗</b><small>My main site with projects</small></a><span>Video stats: public X metrics, Oct 2026.</span></footer>
+<script src="data.js?v=13"></script>
+<script src="app.js?v=13"></script>
+</body>
+</html>
