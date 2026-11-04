@@ -178,9 +178,6 @@ const HL=[
  ['1859270465522462820','Cartoon','“How Benny Boone Saved the Bull”','Original animated short about the ecosystem mascots.',2989,125],
  ['1870542728762941596','Video','Huma Finance: the time value of money','Explainer video about @humafinance.',2880,55],
  ['1873005088806994022','Video','$INJ year in review 2024','Festive video recap of the year.',2443,111],
- ['1906859678061011190','Art','Ninja Blaze: multi-currency','Graphics for a Ninja Blaze announcement.',1714,59],
- ['1878764858465812898','Art','Banner for Injective Indonesia','A banner inspired by Indonesian culture.',1593,61],
- ['1903533323319967991','Art','Injective × haha artwork','Original illustration (Injective, haha, Ninja Blaze).',1244,52]
 ];
 fill('#hlGrid',HL.map(([id,k,t,p,imp,lk])=>`<a class="card hl tilt rv" href="${xurl(id)}" target="_blank" rel="noopener">
  <div class="hl-img"><img loading="lazy" src="assets/x/${id}.jpg" alt="">${/Video|Cartoon/.test(k)?'<span class="vbadge">▶ video</span>':''}</div>
