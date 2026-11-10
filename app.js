@@ -111,13 +111,40 @@ if($('#homeVideos')){
 }
 // videos page
 if($('#vGrid')){
- const P=new URLSearchParams(location.search);
- const st={q:'',year:'all',topic:P.get('topic')||'all',sort:'new',shown:24,view:'list'};
- // InjectiveFit21 and RU clips are listed only when their own topic tab is active
+ const slug=s=>String(s).toLowerCase().replace(/&/g,'and').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
  const HIDDEN=new Set(['InjectiveFit21','RU']),VV=V.filter(v=>!v.tp.some(t=>HIDDEN.has(t)));
  const years=[...new Set(VV.map(v=>v.d.slice(0,4)))];
  const tc={};VV.forEach(v=>v.tp.forEach(t=>tc[t]=(tc[t]||0)+1));HIDDEN.forEach(t=>{const n=V.filter(v=>v.tp.includes(t)).length;if(n)tc[t]=n});
  const topics=Object.entries(tc).sort((a,b)=>b[1]-a[1]).map(x=>x[0]);
+ const bySlug={};topics.forEach(t=>{bySlug[slug(t)]=t;bySlug[t.toLowerCase()]=t});
+ const resolveTopic=v=>{if(!v||/^all$/i.test(v))return 'all';return bySlug[slug(v)]||bySlug[String(v).toLowerCase()]||'all'};
+ const resolveYear=v=>!v||/^all$/i.test(v)?'all':(years.includes(v)?v:'all');
+ const readUrl=()=>{
+  let topic='all',year='all';
+  const p=location.pathname.replace(/\/+$/,'').toLowerCase();
+  const m=p.match(/\/videos(?:\.html)?(?:\/([^/]+))?$/);
+  if(m&&m[1]&&m[1]!=='index.html') topic=resolveTopic(decodeURIComponent(m[1]));
+  const Q=new URLSearchParams(location.search);
+  if(Q.get('topic')) topic=resolveTopic(Q.get('topic'));
+  if(Q.get('year')) year=resolveYear(Q.get('year'));
+  const h=decodeURIComponent((location.hash||'').slice(1));
+  if(h&&!h.startsWith('vm-')) h.split('/').filter(Boolean).forEach(part=>{if(/^\d{4}$/.test(part)) year=resolveYear(part); else topic=resolveTopic(part)});
+  return {topic,year};
+ };
+ const writeUrl=()=>{
+  const path=st.topic==='all'?'/videos/':'/videos/'+slug(st.topic)+'/';
+  const sp=new URLSearchParams(location.search);
+  sp.delete('topic');
+  if(st.year!=='all') sp.set('year',st.year); else sp.delete('year');
+  const qs=sp.toString();
+  const hash=(location.hash||'').startsWith('#vm-')?location.hash:'';
+  const next=path+(qs?'?'+qs:'')+hash;
+  if((location.pathname.replace(/\/?$/,'/')+(location.search||'')+(location.hash||''))!==(path+(qs?'?'+qs:'')+hash) && location.pathname+location.search+location.hash!==next)
+    history.replaceState(null,'',next);
+  document.title=st.topic==='all'?'Videos | NomberFax — Web3 Content Creator & Designer':st.topic+' videos | NomberFax';
+ };
+ const prettyUrl=()=>location.origin+(st.topic==='all'?'/videos/':'/videos/'+slug(st.topic)+'/')+(st.year!=='all'?'?year='+st.year:'');
+ const st={q:'',year:'all',topic:'all',sort:'new',shown:24,view:'list',...readUrl()};
  const chip=(k,val,label,n)=>`<button class="chip" data-k="${k}" data-v="${esc(val)}" aria-pressed="${st[k]===val}">${esc(label)}${n!=null?`<em>${n}</em>`:''}</button>`;
  $('#vYears').innerHTML='<span class="lbl">Year</span>'+chip('year','all','All',VV.length)+years.map(y=>chip('year',y,y,VV.filter(v=>v.d.startsWith(y)).length)).join('');
  $('#vTopics').innerHTML='<span class="lbl">Topic</span>'+chip('topic','all','All',VV.length)+topics.map(t=>chip('topic',t,t,tc[t])).join('');
@@ -130,22 +157,33 @@ if($('#vGrid')){
   $$('.chip[data-k]').forEach(c=>c.setAttribute('aria-pressed',st[c.dataset.k]===c.dataset.v));
   $('#vGrid').innerHTML=L.slice(0,st.shown).map(vCard).join('')||'<div class="empty">Nothing found — try another filter.</div>';
   $('#vMore').style.display=L.length>st.shown?'':'none';
-  $$('.chip[data-k]').forEach(c=>c.setAttribute('aria-pressed',st[c.dataset.k]===c.dataset.v));
   months(L);enhance();
  };
- document.addEventListener('click',e=>{const c=e.target.closest('.chip[data-k]');if(!c)return;st[c.dataset.k]=c.dataset.v;st.shown=24;render()});
+ document.addEventListener('click',e=>{const c=e.target.closest('.chip[data-k]');if(!c)return;st[c.dataset.k]=c.dataset.v;st.shown=24;render();writeUrl()});
  let t;$('#vSearch').addEventListener('input',e=>{clearTimeout(t);t=setTimeout(()=>{st.q=e.target.value;st.shown=24;render()},150)});
  $('#vSort').onchange=e=>{st.sort=e.target.value;render()};
  $('#vMore').onclick=()=>{st.shown+=24;render()};
  /* ---- month-by-month view under the results (same filters) ---- */
  function months(L){const by={};L.forEach(v=>(by[v.d.slice(0,7)]=by[v.d.slice(0,7)]||[]).push(v));
   const ks=Object.keys(by).sort().reverse();
-  $('#vmJump').innerHTML=[...new Set(ks.map(k=>k.slice(0,4)))].map(y=>`<a class="chip vm-chip" href="#vm-${ks.find(k=>k.startsWith(y))}">${y}<em>${ks.filter(k=>k.startsWith(y)).reduce((n,k)=>n+by[k].length,0)}</em></a>`).join('');
+  const here=(location.pathname.replace(/\/?$/,'/')||'/');
+  $('#vmJump').innerHTML=[...new Set(ks.map(k=>k.slice(0,4)))].map(y=>`<a class="chip vm-chip" href="${here}#vm-${ks.find(k=>k.startsWith(y))}">${y}<em>${ks.filter(k=>k.startsWith(y)).reduce((n,k)=>n+by[k].length,0)}</em></a>`).join('');
   $('#vmList').innerHTML=ks.map(k=>`<section class="vm-month" id="vm-${k}"><h3>${fm(k)}<small>${by[k].length} video${by[k].length>1?'s':''}</small></h3><div class="vm-grid">${by[k].sort((a,b)=>a.d.localeCompare(b.d)).map(v=>`<article class="vm-card">
    <div class="player" data-mp4="${esc(v.mp4||'')}" data-yt="${v.yt||''}" data-x="${v.x||''}" data-poster="${v.img}" role="button" tabindex="0" aria-label="Play: ${esc(v.t)}"><img loading="lazy" src="${v.img}" alt=""><button class="play" aria-label="Play" tabindex="-1"></button><span class="dur">${dur(v.dur)}</span></div>
    <div class="vm-b"><b title="${esc(v.t)}">${esc(v.t)}</b><span>${fd(v.d)}${v.x?` · 👁 ${nf(v.xv)}`:''}</span></div></article>`).join('')}</div></section>`).join('')||'<div class="empty">Nothing found — try another filter.</div>'}
- render();
+ const copy=$('#vCopy');
+ if(copy) copy.onclick=()=>{
+  const url=prettyUrl(),done=()=>{copy.textContent='Copied';clearTimeout(copy._t);copy._t=setTimeout(()=>{copy.textContent='🔗 Copy link'},1600)};
+  const fb=()=>{const i=document.createElement('textarea');i.value=url;i.style.position='fixed';i.style.opacity='0';document.body.appendChild(i);i.select();try{document.execCommand('copy')}catch(_){}i.remove();done()};
+  navigator.clipboard?navigator.clipboard.writeText(url).then(done,fb):fb();
+ };
+ const deep=st.topic!=='all'||st.year!=='all';
+ render();writeUrl();
+ if(deep) setTimeout(()=>{const el=$('#vFilters')||$('#vTopics');if(el)el.scrollIntoView({behavior:'smooth',block:'start'})},80);
+ addEventListener('popstate',()=>{Object.assign(st,readUrl());st.shown=24;render()});
+ addEventListener('hashchange',()=>{const h=(location.hash||'').slice(1);if(h.startsWith('vm-'))return;const u=readUrl();if(u.topic===st.topic&&u.year===st.year)return;Object.assign(st,u);st.shown=24;render()});
 }
+
 
 /* ---------- INJ Lounge ---------- */
 if($('#loungeGrid')){

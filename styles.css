@@ -474,3 +474,8 @@ button.soc{text-align:left;color:inherit}
 @media(min-width:1001px){.rs-chips{gap:7px}.rs-chip{font-size:.8rem;padding:5px 10px}}
 .k-who p{max-width:900px}
 @media(min-width:1001px){.rs-chips{gap:8px}.rs-chip{font-size:.85rem;padding:6px 16px}}@media(min-width:1400px){.rs-chip{font-size:.86rem;padding:6px 17px}}
+
+#vFilters{scroll-margin-top:84px}
+.v-count-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin:-6px 0 14px}
+.v-count-row .v-count{margin:0}
+.v-copy{flex:none}
