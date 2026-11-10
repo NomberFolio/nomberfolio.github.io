@@ -332,7 +332,7 @@ if($('#quest')&&D.map){
    <div class="qp-top"><span class="qp-cat"><i></i>${cl}</span><span class="qp-date">${n.dl||fd(n.date)}</span>${n.star?'<span class="qp-star">★ Highlight</span>':''}</div>
    <h4>${esc(n.title)}</h4>${media(n)}<p>${esc(n.desc)}</p>
    ${n.imp?`<div class="qp-m"><span>👁 <b>${n.imp.toLocaleString('en-US')}</b> impressions</span>${n.likes?`<span>♥ <b>${n.likes}</b></span>`:''}${n.extra?`<span>▶ ${esc(n.extra)}</span>`:''}</div>`:''}
-   <div class="qp-links">${xu?`<a class="btn sm primary" href="${xu}" target="_blank" rel="noopener">${ICON.x} Open on X ↗</a>`:''}${n.link?`<a class="btn sm" href="${n.link}" ${n.link.startsWith('http')?'target="_blank" rel="noopener"':''}>${esc(n.label||'Open')} ↗</a>`:''}</div>
+   <div class="qp-links">${xu?`<a class="btn sm primary" href="${xu}" target="_blank" rel="noopener">${ICON.x} Open on X ↗</a>`:''}${n.x2?`<a class="btn sm qp-sub" href="${xurl(n.x2)}" target="_blank" rel="noopener">${esc(n.label2||'Day 1')} ↗</a>`:''}${n.link?`<a class="btn sm" href="${n.link}" ${n.link.startsWith('http')?'target="_blank" rel="noopener"':''}>${esc(n.label||'Open')} ↗</a>`:''}</div>
    <div class="qp-nav"><button class="btn sm" data-q="-1" aria-label="Previous stop">←</button><span>${cur+1} / ${M.length}</span><button class="btn sm" data-q="1" aria-label="Next stop">→</button></div></div>`;
   panel.querySelector('.qp-in').animate?.([{opacity:0,transform:'translateY(8px)'},{opacity:1,transform:'none'}],{duration:RM?0:320,easing:'ease-out'});
   place(scroll);cnt();

@@ -296,7 +296,7 @@ select.sel{padding:11px 14px;border-radius:12px;border:1px solid rgba(255,255,25
 .qp-img.logo{display:grid;place-items:center;background:radial-gradient(circle,rgba(0,229,255,.18),transparent 70%)}.qp-img.logo img{width:96px;height:96px;border-radius:50%;box-shadow:0 0 40px rgba(0,229,255,.4)}
 .qp-in p{font-size:.9rem;color:#cfcce4;line-height:1.6}
 .qp-m{display:flex;flex-wrap:wrap;gap:12px;font-size:.8rem;color:var(--mut)}.qp-m b{color:var(--txt)}
-.qp-links{display:flex;flex-wrap:wrap;gap:8px}.qp-links svg{width:13px;height:13px;fill:currentColor}
+.qp-links{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.qp-links .qp-sub{font-size:.78rem;padding:6px 10px;opacity:.92}.qp-links svg{width:13px;height:13px;fill:currentColor}
 .qp-nav{display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding-top:6px;font-size:.8rem;color:var(--mut)}
 .q-hint{margin-top:12px;text-align:center;position:relative}
 @media (max-width:1000px){.q-top{grid-template-columns:1fr}.q-body{grid-template-columns:1fr}.q-panel{min-height:0}}
