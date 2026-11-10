@@ -102,28 +102,28 @@ document.addEventListener('play',e=>{if(e.target.tagName==='VIDEO')$$('video').f
 const XV=V.filter(v=>v.x);
 const totalXV=XV.reduce((a,v)=>a+(v.xv||0),0),totalXL=XV.reduce((a,v)=>a+(v.xl||0),0);
 $$('[data-stat]').forEach(e=>{const k=e.dataset.stat;const val={videos:V.length,videosfloor:Math.floor(XV.length/5)*5,xviews:totalXV,xlikes:totalXL,injvideos:XV.filter(v=>v.tp.includes('Injective')).length,lounge:D.lounge.length,
- loungeimp:D.lounge.reduce((a,l)=>a+l.imp,0),loungevv:D.lounge.reduce((a,l)=>a+l.vv,0),projects:D.current.length+(D.featured||[]).length+D.previous.length+D.stopped.length+(D.dissolved||[]).length,behance:D.behance.length,videoslist:V.filter(v=>!v.tp.includes('InjectiveFit21')).length,art:(D.art||[]).length}[k];if(val!=null)e.dataset.count=val});
+ loungeimp:D.lounge.reduce((a,l)=>a+l.imp,0),loungevv:D.lounge.reduce((a,l)=>a+l.vv,0),projects:D.current.length+(D.featured||[]).length+D.previous.length+D.stopped.length+(D.dissolved||[]).length,behance:D.behance.length,videoslist:V.filter(v=>!v.tp.includes('InjectiveFit21')&&!v.tp.includes('RU')).length,art:(D.art||[]).length}[k];if(val!=null)e.dataset.count=val});
 
-// home: the 4 newest videos (#InjectiveFit21 clips live only on the videos page)
+// home: the 4 newest videos (InjectiveFit21 and RU clips live only on the videos page)
 if($('#homeVideos')){
- const pick=V.slice().sort((a,b)=>b.d.localeCompare(a.d)).filter(v=>!v.tp.includes('InjectiveFit21')).slice(0,4);
+ const pick=V.slice().sort((a,b)=>b.d.localeCompare(a.d)).filter(v=>!v.tp.includes('InjectiveFit21')&&!v.tp.includes('RU')).slice(0,4);
  $('#homeVideos').innerHTML=pick.map(vCard).join('');
 }
 // videos page
 if($('#vGrid')){
  const P=new URLSearchParams(location.search);
  const st={q:'',year:'all',topic:P.get('topic')||'all',sort:'new',shown:24,view:'list'};
- // #InjectiveFit21 clips are listed only when their own topic tab is active
- const FIT='InjectiveFit21',VV=V.filter(v=>!v.tp.includes(FIT));
+ // InjectiveFit21 and RU clips are listed only when their own topic tab is active
+ const HIDDEN=new Set(['InjectiveFit21','RU']),VV=V.filter(v=>!v.tp.some(t=>HIDDEN.has(t)));
  const years=[...new Set(VV.map(v=>v.d.slice(0,4)))];
- const tc={};VV.forEach(v=>v.tp.forEach(t=>tc[t]=(tc[t]||0)+1));tc[FIT]=V.length-VV.length;
+ const tc={};VV.forEach(v=>v.tp.forEach(t=>tc[t]=(tc[t]||0)+1));HIDDEN.forEach(t=>{const n=V.filter(v=>v.tp.includes(t)).length;if(n)tc[t]=n});
  const topics=Object.entries(tc).sort((a,b)=>b[1]-a[1]).map(x=>x[0]);
  const chip=(k,val,label,n)=>`<button class="chip" data-k="${k}" data-v="${esc(val)}" aria-pressed="${st[k]===val}">${esc(label)}${n!=null?`<em>${n}</em>`:''}</button>`;
  $('#vYears').innerHTML='<span class="lbl">Year</span>'+chip('year','all','All',VV.length)+years.map(y=>chip('year',y,y,VV.filter(v=>v.d.startsWith(y)).length)).join('');
  $('#vTopics').innerHTML='<span class="lbl">Topic</span>'+chip('topic','all','All',VV.length)+topics.map(t=>chip('topic',t,t,tc[t])).join('');
  const render=()=>{
   const q=st.q.trim().toLowerCase();
-  let L=(st.topic===FIT?V:VV).filter(v=>(st.year==='all'||v.d.startsWith(st.year))&&(st.topic==='all'||v.tp.includes(st.topic))&&(!q||(v.t+' '+(v.desc||'')+' '+v.tp.join(' ')).toLowerCase().includes(q)));
+  let L=(HIDDEN.has(st.topic)?V:VV).filter(v=>(st.year==='all'||v.d.startsWith(st.year))&&(st.topic==='all'||v.tp.includes(st.topic))&&(!q||(v.t+' '+(v.desc||'')+' '+v.tp.join(' ')).toLowerCase().includes(q)));
   const S={new:(a,b)=>b.d.localeCompare(a.d),old:(a,b)=>a.d.localeCompare(b.d),views:(a,b)=>(b.xv||0)-(a.xv||0),likes:(a,b)=>(b.xl||0)-(a.xl||0)};
   L=L.slice().sort(S[st.sort]);
   $('#vCount').textContent=`${L.length} video${L.length===1?'':'s'}`+(L.length?` · ${nf(L.reduce((a,v)=>a+(v.xv||0),0))} X views`:'');
