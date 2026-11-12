@@ -98,6 +98,89 @@ document.addEventListener('click',e=>{const p=e.target.closest('.player');if(p&&
 document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.classList?.contains('player'))play(e.target)});
 document.addEventListener('play',e=>{if(e.target.tagName==='VIDEO')$$('video').forEach(o=>{if(o!==e.target)o.pause()})},true);
 
+function createWall(cfg){
+ const id=cfg.id, aspect=cfg.aspect||16/9, cols=cfg.cols||{mob:[5,6],desk:[12,16]};
+ let built=false,open=false;
+ const $=s=>document.querySelector(s);
+ function ensure(){
+  if(built)return;
+  const root=document.createElement('div');root.id=id;root.className='v-wall';root.hidden=true;root.setAttribute('role','dialog');root.setAttribute('aria-modal','true');root.setAttribute('aria-label',cfg.label||'Wall view');
+  root.innerHTML=`<div class="v-wall-bar"><h2>${esc(cfg.label||'Wall')}<span>${esc(cfg.head||'')}</span></h2><div class="v-wall-actions"><button class="btn sm" type="button" data-wall-copy>🔗 Copy link</button><button class="btn sm primary" type="button" data-wall-close>← List view</button></div></div><div class="v-wall-grid" id="${id}Grid"></div><div class="v-wall-tip" id="${id}Tip" hidden></div>`;
+  document.body.appendChild(root);
+  const grid=$('#'+id+'Grid');
+  grid.innerHTML=(cfg.tiles||[]).map(t=>`<button type="button" class="v-tile" data-href="${esc(t.href||'')}" data-mp4="${esc(t.mp4||'')}" data-yt="${esc(t.yt||'')}" data-x="${esc(t.x||'')}" data-poster="${esc(t.poster||t.src||'')}" data-tip="${esc(t.tip||'')}" data-date="${esc(t.sub||'')}" aria-label="${esc(t.tip||'')}">${t.src?`<img loading="lazy" src="${esc(t.src)}" alt="">`:''}</button>`).join('');
+  const tip=$('#'+id+'Tip');
+  const placeTip=el=>{
+   const r=el.getBoundingClientRect();
+   tip.innerHTML=`${esc(el.dataset.tip||'')}${el.dataset.date?`<small>${esc(el.dataset.date)}</small>`:''}`;tip.hidden=false;tip.classList.add('on');
+   const tw=tip.offsetWidth,th=tip.offsetHeight;
+   let x=r.left+r.width/2,y=r.top-8;
+   if(x-tw/2<8)x=8+tw/2; if(x+tw/2>innerWidth-8)x=innerWidth-8-tw/2;
+   if(y-th<8){y=r.bottom+8;tip.style.transform='translate(-50%,0)'} else tip.style.transform='translate(-50%,-100%)';
+   tip.style.left=x+'px';tip.style.top=y+'px';
+  };
+  const hideTip=()=>{tip.classList.remove('on');tip.hidden=true};
+  grid.addEventListener('pointerover',e=>{const t=e.target.closest('.v-tile');if(t)placeTip(t)});
+  grid.addEventListener('pointerout',e=>{if(!e.relatedTarget||!e.relatedTarget.closest?.('.v-tile'))hideTip()});
+  grid.addEventListener('focusin',e=>{const t=e.target.closest('.v-tile');if(t)placeTip(t)});
+  grid.addEventListener('focusout',hideTip);
+  grid.addEventListener('click',e=>{const t=e.target.closest('.v-tile');if(!t)return;if(cfg.onClick)cfg.onClick(t);else if(t.dataset.href)window.open(t.dataset.href,'_blank','noopener')});
+  root.querySelector('[data-wall-close]').onclick=()=>api.hide();
+  root.querySelector('[data-wall-copy]').onclick=()=>{
+   const url=location.origin+cfg.path,btn=root.querySelector('[data-wall-copy]');
+   const done=()=>{btn.textContent='Copied';clearTimeout(btn._t);btn._t=setTimeout(()=>{btn.textContent='🔗 Copy link'},1600)};
+   const fb=()=>{const i=document.createElement('textarea');i.value=url;i.style.position='fixed';i.style.opacity='0';document.body.appendChild(i);i.select();try{document.execCommand('copy')}catch(_){}i.remove();done()};
+   navigator.clipboard?navigator.clipboard.writeText(url).then(done,fb):fb();
+  };
+  addEventListener('keydown',e=>{
+   if(e.key!=='Escape'||!open)return;
+   if(cfg.onEsc && cfg.onEsc()){e.preventDefault();return}
+   e.preventDefault();api.hide();
+  });
+  addEventListener('resize',()=>{if(open)api.size()});
+  built=true;
+ }
+ function size(){
+  const grid=$('#'+id+'Grid');if(!grid||!open)return;
+  const n=grid.children.length,w=grid.clientWidth,h=grid.clientHeight,mob=innerWidth<701;
+  const cMin=mob?cols.mob[0]:cols.desk[0],cMax=mob?cols.mob[1]:cols.desk[1],gap=mob?3:5;
+  let best=cMax;
+  for(let c=cMin;c<=cMax;c++){
+   const rows=Math.ceil(n/c),tw=(w-gap*(c-1))/c,th=tw/aspect,total=rows*th+gap*(rows-1);
+   if(total<=h+0.5){best=c;break}
+  }
+  const rows=Math.ceil(n/best),tw=(w-gap*(best-1))/best,th=tw/aspect,total=rows*th+gap*(rows-1);
+  grid.style.gridTemplateColumns=`repeat(${best},minmax(0,1fr))`;
+  grid.style.gap=gap+'px';
+  grid.style.setProperty('--tile-ar',aspect);
+  grid.style.alignContent=total<=h+0.5?'center':'start';
+  grid.dataset.cols=best;
+ }
+ const api={
+  isOpen:()=>open,
+  size,
+  show(push){
+   ensure();
+   $( '#'+id).hidden=false;document.body.classList.add('v-wall-on');
+   open=true;if(cfg.onOpen)cfg.onOpen();
+   if(cfg.pageTitle)document.title=cfg.pageTitle;
+   size();requestAnimationFrame(size);
+   const here=location.pathname.replace(/\/?$/,'/');
+   const want=cfg.path.replace(/\/?$/,'/');
+   if(here!==want){const st={wall:cfg.path}; if(push) history.pushState(st,'',cfg.path); else history.replaceState(st,'',cfg.path)}
+  },
+  hide(fromPop){
+   if(cfg.beforeHide)cfg.beforeHide();
+   const w=$('#'+id);if(w)w.hidden=true;
+   document.body.classList.remove('v-wall-on');open=false;
+   if(!fromPop && history.state&&history.state.wall===cfg.path){history.back();return}
+   if(cfg.onClose)cfg.onClose();
+  }
+ };
+ return api;
+}
+
+
 // stats (X numbers count only videos posted on X)
 const XV=V.filter(v=>v.x);
 const totalXV=XV.reduce((a,v)=>a+(v.xv||0),0),totalXL=XV.reduce((a,v)=>a+(v.xl||0),0);
@@ -182,81 +265,22 @@ if($('#vGrid')){
  /* ---- wall view: every video, densest grid ---- */
  const WALL=V.slice().sort((a,b)=>b.d.localeCompare(a.d));
  const kplus=n=>n>=1000?Math.floor(n/1000).toLocaleString('en-US')+'K+':nf(n);
- const first=V.slice().sort((a,b)=>a.d.localeCompare(b.d))[0];
- const wallHead=`${V.length} videos · ${kplus(totalXV)} views on X · since ${first?fm(first.d.slice(0,7)):'Feb 2024'}`;
- let wallBuilt=false,wallOpen=false;
- function ensureWall(){
-  if(wallBuilt)return;
-  const root=document.createElement('div');root.id='vWall';root.className='v-wall';root.hidden=true;root.setAttribute('role','dialog');root.setAttribute('aria-modal','true');root.setAttribute('aria-label','All videos as a wall');
-  root.innerHTML=`<div class="v-wall-bar"><h2>All videos<span>${esc(wallHead)}</span></h2><div class="v-wall-actions"><button class="btn sm" type="button" id="vWallCopy">🔗 Copy link</button><button class="btn sm primary" type="button" id="vWallClose">← List view</button></div></div><div class="v-wall-grid" id="vWallGrid"></div><div class="v-wall-tip" id="vWallTip" hidden></div>`;
-  document.body.appendChild(root);
-  const modal=document.createElement('div');modal.id='vWallModal';modal.className='v-wall-modal';modal.hidden=true;modal.setAttribute('role','dialog');modal.setAttribute('aria-modal','true');
-  modal.innerHTML='<button class="v-wall-modal-x" type="button" aria-label="Close">×</button><div class="v-wall-modal-box"><div class="player" id="vWallPlayer"></div><div class="v-wall-modal-meta"><div><b id="vWallMTitle"></b><span id="vWallMDate"></span></div><div id="vWallMLinks"></div></div></div>';
-  document.body.appendChild(modal);
-  $('#vWallGrid').innerHTML=WALL.map(v=>`<button type="button" class="v-tile" data-mp4="${esc(v.mp4||'')}" data-yt="${v.yt||''}" data-x="${v.x||''}" data-poster="${esc(v.img)}" data-tip="${esc(v.t)}" data-date="${esc(fd(v.d))}" aria-label="${esc(v.t)}"><img loading="lazy" src="${esc(v.img)}" alt=""></button>`).join('');
-  const tip=$('#vWallTip');
-  const placeTip=(el)=>{
-    const r=el.getBoundingClientRect(),t=el.dataset.tip,d=el.dataset.date;
-    tip.innerHTML=`${esc(t)}<small>${esc(d)}</small>`;tip.hidden=false;tip.classList.add('on');
-    const tw=tip.offsetWidth,th=tip.offsetHeight;
-    let x=r.left+r.width/2,y=r.top-8;
-    if(x-tw/2<8)x=8+tw/2; if(x+tw/2>innerWidth-8)x=innerWidth-8-tw/2;
-    if(y-th<8){y=r.bottom+8;tip.style.transform='translate(-50%,0)'} else tip.style.transform='translate(-50%,-100%)';
-    tip.style.left=x+'px';tip.style.top=y+'px';
-  };
-  const hideTip=()=>{tip.classList.remove('on');tip.hidden=true};
-  $('#vWallGrid').addEventListener('pointerover',e=>{const t=e.target.closest('.v-tile');if(t)placeTip(t)});
-  $('#vWallGrid').addEventListener('pointerout',e=>{if(!e.relatedTarget||!e.relatedTarget.closest?.('.v-tile'))hideTip()});
-  $('#vWallGrid').addEventListener('focusin',e=>{const t=e.target.closest('.v-tile');if(t)placeTip(t)});
-  $('#vWallGrid').addEventListener('focusout',hideTip);
-  $('#vWallGrid').addEventListener('click',e=>{const t=e.target.closest('.v-tile');if(t)openWallModal(t)});
-  $('#vWallClose').onclick=()=>closeWall();
-  $('#vWallCopy').onclick=()=>{
-    const url=location.origin+'/videos/wall/',btn=$('#vWallCopy');
-    const done=()=>{btn.textContent='Copied';clearTimeout(btn._t);btn._t=setTimeout(()=>{btn.textContent='🔗 Copy link'},1600)};
-    const fb=()=>{const i=document.createElement('textarea');i.value=url;i.style.position='fixed';i.style.opacity='0';document.body.appendChild(i);i.select();try{document.execCommand('copy')}catch(_){}i.remove();done()};
-    navigator.clipboard?navigator.clipboard.writeText(url).then(done,fb):fb();
-  };
-  modal.addEventListener('click',e=>{if(e.target===modal||e.target.closest('.v-wall-modal-x'))closeWallModal()});
-  wallBuilt=true;
- }
- function sizeWall(){
-  const grid=$('#vWallGrid');if(!grid||!wallOpen)return;
-  const n=WALL.length,w=grid.clientWidth,h=grid.clientHeight,mob=innerWidth<701;
-  const cMin=mob?5:12,cMax=mob?6:16,gap=mob?3:4;
-  let best=cMax;
-  for(let c=cMin;c<=cMax;c++){
-   const rows=Math.ceil(n/c),tw=(w-gap*(c-1))/c,th=tw*9/16,total=rows*th+gap*(rows-1);
-   if(total<=h+0.5){best=c;break}
-  }
-  const rows=Math.ceil(n/best),tw=(w-gap*(best-1))/best,th=tw*9/16,total=rows*th+gap*(rows-1);
-  grid.style.gridTemplateColumns=`repeat(${best},minmax(0,1fr))`;
-  grid.style.gap=gap+'px';
-  grid.style.alignContent=total<=h+0.5?'center':'start';
-  grid.dataset.cols=best;
- }
- function openWall(push){
-  ensureWall();
-  $('#vWall').hidden=false;document.body.classList.add('v-wall-on');
-  wallOpen=true;st.view='wall';document.title='Video wall | NomberFax';
-  sizeWall();requestAnimationFrame(sizeWall);
-  if(push && location.pathname.replace(/\/?$/,'/')!=='/videos/wall/') history.pushState({wall:1},'','/videos/wall/');
-  else if(location.pathname.replace(/\/?$/,'/')!=='/videos/wall/') history.replaceState({wall:1},'','/videos/wall/');
- }
+ const firstV=V.slice().sort((a,b)=>a.d.localeCompare(b.d))[0];
+ const wallHead=`${V.length} videos · ${kplus(totalXV)} views on X · since ${firstV?fm(firstV.d.slice(0,7)):'Feb 2024'}`;
  function closeWallModal(){
   const m=$('#vWallModal');if(!m||m.hidden)return;
   stopAll();m.hidden=true;const pl=$('#vWallPlayer');if(pl){pl.querySelectorAll('video,iframe').forEach(x=>x.remove());pl.classList.remove('on');pl.innerHTML=''}
  }
- function closeWall(fromPop){
-  closeWallModal();
-  const w=$('#vWall');if(w)w.hidden=true;
-  document.body.classList.remove('v-wall-on');wallOpen=false;st.view='list';
-  if(!fromPop && history.state&&history.state.wall){history.back();return}
-  writeUrl(); // also used on popstate to restore title
- }
  function openWallModal(tile){
-  ensureWall();closeWallModal();
-  const modal=$('#vWallModal'),pl=$('#vWallPlayer');
+  closeWallModal();
+  let modal=$('#vWallModal');
+  if(!modal){
+   modal=document.createElement('div');modal.id='vWallModal';modal.className='v-wall-modal';modal.hidden=true;modal.setAttribute('role','dialog');modal.setAttribute('aria-modal','true');
+   modal.innerHTML='<button class="v-wall-modal-x" type="button" aria-label="Close">×</button><div class="v-wall-modal-box"><div class="player" id="vWallPlayer"></div><div class="v-wall-modal-meta"><div><b id="vWallMTitle"></b><span id="vWallMDate"></span></div><div id="vWallMLinks"></div></div></div>';
+   document.body.appendChild(modal);
+   modal.addEventListener('click',e=>{if(e.target===modal||e.target.closest('.v-wall-modal-x'))closeWallModal()});
+  }
+  const pl=$('#vWallPlayer');
   pl.dataset.mp4=tile.dataset.mp4||'';pl.dataset.yt=tile.dataset.yt||'';pl.dataset.x=tile.dataset.x||'';pl.dataset.poster=tile.dataset.poster||'';
   pl.innerHTML=`<img src="${esc(tile.dataset.poster||'')}" alt=""><button class="play" aria-label="Play" tabindex="-1"></button>`;
   $('#vWallMTitle').textContent=tile.dataset.tip||'';
@@ -268,25 +292,28 @@ if($('#vGrid')){
   modal.hidden=false;
   play(pl);
  }
- const vWallBtn=$('#vWallBtn');
- if(vWallBtn) vWallBtn.onclick=()=>wallOpen?closeWall():openWall(true);
- addEventListener('keydown',e=>{
-  if(e.key!=='Escape')return;
-  if($('#vWallModal')&&!$('#vWallModal').hidden){e.preventDefault();closeWallModal();return}
-  if(wallOpen){e.preventDefault();closeWall()}
+ const videoWall=createWall({
+  id:'vWall',label:'All videos',head:wallHead,path:'/videos/wall/',pageTitle:'Video wall | NomberFax',
+  aspect:16/9,cols:{mob:[5,6],desk:[12,16]},
+  tiles:WALL.map(v=>({src:v.img,tip:v.t,sub:fd(v.d),mp4:v.mp4,yt:v.yt||'',x:v.x||'',poster:v.img})),
+  onClick:openWallModal,
+  onOpen:()=>{st.view='wall'},
+  onClose:()=>{st.view='list';writeUrl()},
+  onEsc:()=>{if($('#vWallModal')&&!$('#vWallModal').hidden){closeWallModal();return true}return false}
  });
- addEventListener('resize',()=>{if(wallOpen)sizeWall()});
+ const vWallBtn=$('#vWallBtn');
+ if(vWallBtn) vWallBtn.onclick=()=>videoWall.isOpen()?videoWall.hide():videoWall.show(true);
 
  const deep=st.topic!=='all'||st.year!=='all';
  render();
- if(st.view==='wall') openWall(false); else writeUrl();
+ if(st.view==='wall') videoWall.show(false); else writeUrl();
  if(deep&&st.view!=='wall') setTimeout(()=>{const el=$('#vFilters')||$('#vTopics');if(el)el.scrollIntoView({behavior:'smooth',block:'start'})},80);
  addEventListener('popstate',()=>{
   const u=readUrl();
   Object.assign(st,{topic:u.topic,year:u.year,view:u.view});st.shown=24;render();
-  if(u.view==='wall') openWall(false); else { if(wallOpen) closeWall(true); else writeUrl(); }
+  if(u.view==='wall') videoWall.show(false); else { if(videoWall.isOpen()) videoWall.hide(true); else writeUrl(); }
  });
- addEventListener('hashchange',()=>{const h=(location.hash||'').slice(1);if(h.startsWith('vm-'))return;const u=readUrl();if(u.topic===st.topic&&u.year===st.year&&u.view===st.view)return;Object.assign(st,u);st.shown=24;render();if(u.view==='wall')openWall(false);else if(wallOpen)closeWall(true)});
+ addEventListener('hashchange',()=>{const h=(location.hash||'').slice(1);if(h.startsWith('vm-'))return;const u=readUrl();if(u.topic===st.topic&&u.year===st.year&&u.view===st.view)return;Object.assign(st,u);st.shown=24;render();if(u.view==='wall')videoWall.show(false);else if(videoWall.isOpen())videoWall.hide(true)});
 }
 
 
@@ -311,6 +338,34 @@ if($('#designYears')){
  const by={};B.forEach(b=>{(by[b.year]=by[b.year]||{});(by[b.year][b.month]=by[b.year][b.month]||[]).push(b)});
  $('#designYears').innerHTML=Object.keys(by).sort().reverse().map(y=>{const ms=Object.keys(by[y]).sort((a,b)=>MONTHS.indexOf(b)-MONTHS.indexOf(a));
   return `<section class="year-block rv"><h3><span class="grad">${y}</span><small>${ms.length} month${ms.length>1?'s':''}</small></h3><div class="year-months">${ms.map(m=>`<div class="month-col"><div class="m">${m} <small>${by[y][m].length} project${by[y][m].length>1?'s':''}</small></div>${by[y][m].map(b=>`<a class="b-card tilt" href="${b.url}" target="_blank" rel="noopener"><div class="img"><img loading="lazy" src="${b.cover_local}" alt="${esc(b.t)}"></div><div class="t">${esc(b.t)}<small>${b.published?`Published ${fd(b.published)} · `:''}Open on Behance ↗</small></div></a>`).join('')}</div>`).join('')}</div></section>`}).join('');
+}
+
+if($('#dWallBtn')||$('#designYears')){
+ const dFirst=B.slice().sort((a,b)=>(a.year+String(MONTHS.indexOf(a.month)).padStart(2,'0')).localeCompare(b.year+String(MONTHS.indexOf(b.month)).padStart(2,'0')))[0];
+ const dHead=`${B.length} monthly projects on Behance · since ${dFirst?dFirst.month+' '+dFirst.year:'February 2024'}`;
+ const designWall=createWall({
+  id:'dWall',label:'Monthly design',head:dHead,path:'/design/wall/',pageTitle:'Design wall | NomberFax',
+  aspect:808/632,cols:{mob:[3,4],desk:[6,11]},
+  tiles:B.map(b=>({src:b.cover_local,tip:`${b.month} ${b.year}`,sub:b.t,href:b.url})),
+  onClose:()=>{
+   document.title='Design | NomberFax — Web3 Content Creator & Designer';
+   if(location.pathname.replace(/\/?$/,'/')!=='/design/') history.replaceState(null,'','/design/');
+  }
+ });
+ const dBtn=$('#dWallBtn');
+ if(dBtn) dBtn.onclick=()=>designWall.isOpen()?designWall.hide():designWall.show(true);
+ const dPath=location.pathname.replace(/\/+$/,'').toLowerCase();
+ const dQ=new URLSearchParams(location.search);
+ if(dPath==='/design/wall' || (dQ.get('view')||'').toLowerCase()==='wall') designWall.show(false);
+ addEventListener('popstate',()=>{
+  const p=location.pathname.replace(/\/+$/,'').toLowerCase();
+  const wall=p==='/design/wall'||(new URLSearchParams(location.search).get('view')||'')==='wall';
+  if(wall) designWall.show(false);
+  else {
+   if(designWall.isOpen()) designWall.hide(true);
+   document.title='Design | NomberFax — Web3 Content Creator & Designer';
+  }
+ });
 }
 
 /* ---------- highlights ---------- */
