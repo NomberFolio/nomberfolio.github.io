@@ -18,7 +18,11 @@
       else if(!topic) topic=p;
     });
   }
-  var path='/videos/'+(topic && !/^all$/i.test(topic) ? slug(topic)+'/' : '');
+  if((q.get('view')||'')==='wall' || /^wall$/i.test(topic) || /^wall$/i.test(h)){
+    location.replace('/videos/wall/');
+    return;
+  }
+  var path='/videos/'+(topic && !/^all$/i.test(topic) && !/^wall$/i.test(topic) ? slug(topic)+'/' : '');
   if(year && /^\d{4}$/.test(year)) path+='?year='+encodeURIComponent(year);
   location.replace(path);
 })();
